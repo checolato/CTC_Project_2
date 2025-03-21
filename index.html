@@ -2,16 +2,22 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>50 Items from Google Sheet</title>
+  <!-- Responsive meta tag -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>poolparty!!!</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background-color: #f0f5fc;
+      /* Set website background image */
+      background: url('seapattern.jpg') no-repeat center center fixed;
+      background-size: cover;
       padding: 20px;
+      margin: 0;
     }
+    /* Responsive grid layout */
     .container {
       display: grid;
-      grid-template-columns: repeat(5, 1fr); /* 5 items per row */
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
       gap: 15px;
       max-width: 1000px;
       margin: 0 auto;
@@ -29,36 +35,126 @@
       align-items: center;
       background-size: cover;
       background-position: center;
+      cursor: pointer;
     }
     .item img {
-      max-width: 100%;
+      width: 100%;
+      height: auto;
       max-height: 100%;
       object-fit: cover;
+      z-index: 1;
     }
     .item p {
       margin: 5px 0 0;
       font-size: 14px;
       text-align: center;
-      background: rgba(255,255,255,0.7);
+      background: rgba(255, 255, 255, 0.7);
       width: 100%;
+      z-index: 2;
+      position: relative;
+    }
+    @media (max-width: 600px) {
+      .item {
+        height: 150px;
+      }
+      .item p {
+        font-size: 12px;
+      }
+    }
+    /* Modal (pop-up dialog) styling */
+    .modal {
+      display: none; /* Hidden by default */
+      position: fixed;
+      z-index: 9999;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0, 0, 0, 0.8); /* Semi-transparent background */
+    }
+    .modal-content {
+      background-color: #fefefe;
+      margin: 5% auto;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 90%;
+      max-width: 800px;
+      display: flex;
+      flex-wrap: wrap;
+      position: relative;
+    }
+    .modal-content .close {
+      color: #aaa;
+      position: absolute;
+      top: 10px;
+      right: 20px;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    /* Modal body: side-by-side layout */
+    .modal-image, .modal-info {
+      flex: 1;
+      min-width: 250px;
+      padding: 10px;
+    }
+    .modal-image img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      margin: 0 auto;
+    }
+    .modal-info p {
+      margin: 5px 0;
+      text-align: left;
     }
   </style>
 </head>
 <body>
   <h1>
-    <img src="poolparty_logo.png" alt="PoolParty Logo">
+    <img src=poolparty_logo.png>
   </h1>
-  
   <div class="container" id="container">
     <!-- Items will be dynamically inserted here -->
+  </div>
+
+  <!-- Modal structure -->
+  <div id="myModal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <div class="modal-image">
+        <img id="modalImage" src="" alt="">
+      </div>
+      <div class="modal-info" id="modalInfo">
+        <!-- Detailed info will be inserted here -->
+      </div>
+    </div>
   </div>
 
   <script>
     document.addEventListener("DOMContentLoaded", () => {
       const SHEET_ID = '1XgMtAG_idVA2LEXWFetGb94ZMjKDHUzH6D87uXv6lSo';
       const API_KEY = 'AIzaSyBDl5Ko272-ASW3PfezhAkMjP0EPqHh51k';
-      const RANGE = 'Sheet1!A2:C51'; // Column A: title, B: image URL, C: pool status (in/on/out)
+      // Updated range to include columns A to G
+      const RANGE = 'Sheet1!A2:G51';
       const SHEET_API_URL = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${RANGE}?key=${API_KEY}`;
+      
+      const container = document.getElementById("container");
+      const modal = document.getElementById("myModal");
+      const modalImage = document.getElementById("modalImage");
+      const modalInfo = document.getElementById("modalInfo");
+      const closeModal = document.querySelector(".modal-content .close");
+
+      // Close modal when clicking the close button or clicking outside the modal content.
+      closeModal.addEventListener("click", () => {
+        modal.style.display = "none";
+      });
+      window.addEventListener("click", (e) => {
+        if (e.target === modal) {
+          modal.style.display = "none";
+        }
+      });
       
       fetch(SHEET_API_URL)
         .then(response => {
@@ -70,61 +166,69 @@
         .then(data => {
           console.log("Fetched data:", data);
           const rows = data.values;
-          const container = document.getElementById("container");
           
           if (rows && rows.length > 0) {
             rows.forEach((row, index) => {
-              // Retrieve title, image URL, and pool status from the row.
-              const titleText = row[0] ? row[0].trim() : `Item ${index + 1}`;
+              // Expecting columns:
+              // A: ID, B: image URL, C: Object Content, D: In/On/Out Pool,
+              // E: Emotion, F: BW/Colored, G: Observation/Purposed
+              const id = row[0] ? row[0].trim() : `Item ${index + 1}`;
               let imageURL = row[1] ? row[1].trim() : "";
-              // Force the pool status to lowercase for comparison.
-              let poolStatus = row[2] ? row[2].trim().toLowerCase() : "on";
-              console.log(`Row ${index+2}: poolStatus = ${poolStatus}`);
-              
+              const objectContent = row[2] ? row[2].trim() : "";
+              const poolStatusRaw = row[3] ? row[3].trim() : "on";
+              let poolStatus = poolStatusRaw.toLowerCase();
+              const emotion = row[4] ? row[4].trim() : "";
+              const bwColored = row[5] ? row[5].trim() : "";
+              const observation = row[6] ? row[6].trim() : "";
+
               // Convert GitHub blob URL to raw if needed.
               if (imageURL.includes("github.com") && imageURL.includes("/blob/")) {
                 imageURL = imageURL.replace("github.com", "raw.githubusercontent.com").replace("/blob", "");
               }
               
-              // Create container for each item.
+              // Create the item container.
               const itemDiv = document.createElement("div");
               itemDiv.classList.add("item");
               
+              // Apply background styling based on pool status.
               if (poolStatus === "in") {
-                // "in" category uses a light blue background and shows the image normally.
                 itemDiv.style.backgroundColor = "#add8e6"; // light blue
-                const img = document.createElement("img");
-                img.src = imageURL;
-                img.alt = titleText;
-                img.onerror = () => { img.src = "https://via.placeholder.com/200"; };
-                itemDiv.appendChild(img);
               } else if (poolStatus === "on") {
-                // "on" category uses a white background and shows the image normally.
                 itemDiv.style.backgroundColor = "#ffffff"; // white
-                const img = document.createElement("img");
-                img.src = imageURL;
-                img.alt = titleText;
-                img.onerror = () => { img.src = "https://via.placeholder.com/200"; };
-                itemDiv.appendChild(img);
               } else if (poolStatus === "out") {
-                // "out" category uses the image as the background.
-                itemDiv.style.backgroundImage = `url(${imageURL})`;
-                // Optionally, set a fallback background color.
-                itemDiv.style.backgroundColor = "#cccccc";
+                itemDiv.style.backgroundImage = "url('stonefloor.jpg')";
+                itemDiv.style.backgroundColor = "#cccccc"; // fallback color
               } else {
-                // If pool status is unrecognized, default to white background and show the image.
                 itemDiv.style.backgroundColor = "#ffffff";
-                const img = document.createElement("img");
-                img.src = imageURL;
-                img.alt = titleText;
-                img.onerror = () => { img.src = "https://via.placeholder.com/200"; };
-                itemDiv.appendChild(img);
               }
               
-              // Append the title below the image or overlay.
+              // Create and append the image element.
+              const img = document.createElement("img");
+              img.src = imageURL;
+              img.alt = id;
+              img.onerror = () => { img.src = "https://via.placeholder.com/200"; };
+              itemDiv.appendChild(img);
+              
+              // Append a title element (using the ID as title).
               const titleEl = document.createElement("p");
-              titleEl.textContent = titleText;
+              titleEl.textContent = id;
               itemDiv.appendChild(titleEl);
+              
+              // Add click event to open the modal with detailed information.
+              itemDiv.addEventListener("click", () => {
+                modal.style.display = "block";
+                modalImage.src = imageURL;
+                modalImage.alt = id;
+                // Populate the modal info with all columns.
+                modalInfo.innerHTML = `
+                  <p><strong>ID:</strong> ${id}</p>
+                  <p><strong>Object Content:</strong> ${objectContent}</p>
+                  <p><strong>In/On/Out Pool:</strong> ${poolStatusRaw}</p>
+                  <p><strong>Emotion:</strong> ${emotion}</p>
+                  <p><strong>BW/Colored:</strong> ${bwColored}</p>
+                  <p><strong>Observation/Purposed:</strong> ${observation}</p>
+                `;
+              });
               
               container.appendChild(itemDiv);
             });
@@ -137,4 +241,3 @@
   </script>
 </body>
 </html>
-
