@@ -1,45 +1,37 @@
-// Your provided API Key
-const apiKey = "AIzaSyBDl5Ko272-ASW3PfezhAkMjP0EPqHh51k";
+document.addEventListener("DOMContentLoaded", () => {
+  const SHEET_ID = '1SJwLU7pEWIyeytUYvdyHuG8y_1cdSg6sjHAOh_DA3ATJ';
+  const API_KEY = 'AIzaSyBDl5Ko272-ASW3PfezhAkMjP0EPqHh51k';
+  const RANGE = 'Sheet1!A2:B50';
 
-// Extracted from your provided URL
-const sheetID = "1SJwLU7pEWIyeytUYvdyHuG8y_1cdSg6sjHAOh_DA3ATJ"; 
+  const SHEET_API_URL = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${RANGE}?key=${API_KEY}`;
 
-// Replace "Sheet1" if your sheet has a different name
-const sheetName = "Sheet1";
+  fetch(SHEET_API_URL)
+      .then(res => res.json())
+      .then(data => {
+          const items = document.querySelectorAll(".item");
 
-// Google Sheets API URL
-const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetID}/values/${sheetName}?key=${apiKey}`;
+          data.values.forEach((row, index) => {
+              if (index < items.length && row[1]) {
+                  const img = document.createElement("img");
+                  img.setAttribute('loading', 'lazy');
+                  
+                  // Set placeholder first
+                  img.src = "https://via.placeholder.com/120?text=Loading...";
+                  img.alt = `Image ${index + 1}`;
 
-// Fetch data from your Google Sheet
-fetch(url)
-  .then(response => response.json())
-  .then(data => {
-    if (data.values) {
-      createTable(data.values);
-    } else {
-      document.getElementById("table-container").innerHTML = "No data found or check your sheet name.";
-    }
-  })
-  .catch(err => {
-    console.error('Error:', err);
-    document.getElementById("table-container").innerHTML = "Failed to load data.";
-  });
+                  const realImage = new Image();
+                  realImage.src = row[1].trim();
+                  realImage.onload = () => {
+                      img.src = realImage.src;  // Replace placeholder with real image once loaded
+                  };
+                  realImage.onerror = () => {
+                      img.src = "https://via.placeholder.com/120"; // Error placeholder
+                  };
 
-// Function to create HTML table
-function createTable(rows) {
-  let tableHTML = "<table>";
-
-  rows.forEach((row, index) => {
-    tableHTML += "<tr>";
-
-    row.forEach(cell => {
-      tableHTML += (index === 0) ? `<th>${cell}</th>` : `<td>${cell}</td>`;
-    });
-
-    tableHTML += "</tr>";
-  });
-
-  tableHTML += "</table>";
-
-  document.getElementById("table-container").innerHTML = tableHTML;
-}
+                  items[index].textContent = "";
+                  items[index].appendChild(img);
+              }
+          });
+      })
+      .catch(err => console.error("Error:", err));
+});
