@@ -17,16 +17,18 @@
       margin: 0 auto;
     }
     .item {
-      background-color: #fff;
+      position: relative;
       border: 1px solid #ddd;
       border-radius: 8px;
       overflow: hidden;
+      padding: 5px;
+      height: 200px;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      padding: 5px;
-      height: 200px;
+      background-size: cover;
+      background-position: center;
     }
     .item img {
       max-width: 100%;
@@ -37,20 +39,25 @@
       margin: 5px 0 0;
       font-size: 14px;
       text-align: center;
+      background: rgba(255,255,255,0.7);
+      width: 100%;
     }
   </style>
 </head>
 <body>
-  <h1>50 Items from Google Sheet</h1>
+  <h1>
+    <img src="poolparty_logo.png" alt="PoolParty Logo">
+  </h1>
+  
   <div class="container" id="container">
-    <!-- Items will be added here -->
+    <!-- Items will be dynamically inserted here -->
   </div>
 
   <script>
     document.addEventListener("DOMContentLoaded", () => {
       const SHEET_ID = '1XgMtAG_idVA2LEXWFetGb94ZMjKDHUzH6D87uXv6lSo';
       const API_KEY = 'AIzaSyBDl5Ko272-ASW3PfezhAkMjP0EPqHh51k';
-      const RANGE = 'Sheet1!A2:B51'; // 50 rows: column A (optional title) and column B (image URL)
+      const RANGE = 'Sheet1!A2:C51'; // Column A: title, B: image URL, C: pool status (in/on/out)
       const SHEET_API_URL = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${RANGE}?key=${API_KEY}`;
       
       fetch(SHEET_API_URL)
@@ -67,32 +74,57 @@
           
           if (rows && rows.length > 0) {
             rows.forEach((row, index) => {
-              // row[0] = optional title; row[1] = image URL
+              // Retrieve title, image URL, and pool status from the row.
+              const titleText = row[0] ? row[0].trim() : `Item ${index + 1}`;
               let imageURL = row[1] ? row[1].trim() : "";
+              // Force the pool status to lowercase for comparison.
+              let poolStatus = row[2] ? row[2].trim().toLowerCase() : "on";
+              console.log(`Row ${index+2}: poolStatus = ${poolStatus}`);
               
-              // If the URL is in GitHub blob format, convert it to a raw URL
+              // Convert GitHub blob URL to raw if needed.
               if (imageURL.includes("github.com") && imageURL.includes("/blob/")) {
                 imageURL = imageURL.replace("github.com", "raw.githubusercontent.com").replace("/blob", "");
               }
               
-              // Create a container for the item
+              // Create container for each item.
               const itemDiv = document.createElement("div");
               itemDiv.classList.add("item");
               
-              // Create and append the image element
-              const img = document.createElement("img");
-              img.src = imageURL;
-              img.alt = row[0] ? row[0].trim() : `Image ${index + 1}`;
-              // Fallback if image fails to load
-              img.onerror = () => { img.src = "https://via.placeholder.com/200"; };
-              itemDiv.appendChild(img);
-              
-              // Optionally, add a title if available in column A
-              if (row[0] && row[0].trim() !== "") {
-                const title = document.createElement("p");
-                title.textContent = row[0].trim();
-                itemDiv.appendChild(title);
+              if (poolStatus === "in") {
+                // "in" category uses a light blue background and shows the image normally.
+                itemDiv.style.backgroundColor = "#add8e6"; // light blue
+                const img = document.createElement("img");
+                img.src = imageURL;
+                img.alt = titleText;
+                img.onerror = () => { img.src = "https://via.placeholder.com/200"; };
+                itemDiv.appendChild(img);
+              } else if (poolStatus === "on") {
+                // "on" category uses a white background and shows the image normally.
+                itemDiv.style.backgroundColor = "#ffffff"; // white
+                const img = document.createElement("img");
+                img.src = imageURL;
+                img.alt = titleText;
+                img.onerror = () => { img.src = "https://via.placeholder.com/200"; };
+                itemDiv.appendChild(img);
+              } else if (poolStatus === "out") {
+                // "out" category uses the image as the background.
+                itemDiv.style.backgroundImage = `url(${imageURL})`;
+                // Optionally, set a fallback background color.
+                itemDiv.style.backgroundColor = "#cccccc";
+              } else {
+                // If pool status is unrecognized, default to white background and show the image.
+                itemDiv.style.backgroundColor = "#ffffff";
+                const img = document.createElement("img");
+                img.src = imageURL;
+                img.alt = titleText;
+                img.onerror = () => { img.src = "https://via.placeholder.com/200"; };
+                itemDiv.appendChild(img);
               }
+              
+              // Append the title below the image or overlay.
+              const titleEl = document.createElement("p");
+              titleEl.textContent = titleText;
+              itemDiv.appendChild(titleEl);
               
               container.appendChild(itemDiv);
             });
@@ -105,3 +137,4 @@
   </script>
 </body>
 </html>
+
